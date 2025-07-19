@@ -26,6 +26,8 @@ type Todo = {
   delete_flg:boolean;// 追加
 };
 
+type Filter = 'all' | 'completed' | 'unchecked' | 'delete'; // <-- 追加
+
 // Todos コンポーネントの定義
 const Todos: React.FC = () => {
   // 以下の①のコードが、登録済みのタスクも含む保管場所となった為以下の②が元の①の代わりとなるコードです。
@@ -33,6 +35,7 @@ const Todos: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]); // Todoの配列を保持するステート①
   const [text, setText] = useState(''); // 入力されたテキストを保持するステート②
   const [nextId, setNextId] = useState(1); // 次のタスクIDを保持するステート③
+  const [filter, setFilter] = useState('all');
 
   // todos ステートを更新する関数
   const handleSubmit = () => {
@@ -136,26 +139,79 @@ const Todos: React.FC = () => {
       return newTodos;
     })
   }
+ //filter:Filter はfilterという変数の型にtype Filterで設定したFilterを設定するという意味
+  const handleFilterChange = (filter: Filter) => {
+    setFilter(filter); 
+    console.log(filter) 
+  }
+
+  const getFilteredTodos = () => {
+    switch (filter) {
+      case 'completed':
+        // 完了済み **かつ** 削除されていないタスクを返す
+        /*⭐️filterメソッド と mapメソッド の違い
+          filter メソッド: 🌼ある条件を満たす要素だけを集めたい🌼 場合に使用
+          map メソッド: 🌷全ての要素に何らかの処理を施したい🌷 場合に使用
+        　*/
+        return todos.filter((todo) => todo.completed_flg && !todo.delete_flg);
+      case 'unchecked':
+        // 未完了 **かつ** 削除されていないタスクを返す
+        return todos.filter((todo) => !todo.completed_flg && !todo.delete_flg);
+      case 'delete':
+        // 削除されたタスクを返す
+        return todos.filter((todo) => todo.delete_flg);
+      default:
+        // 削除されていないすべてのタスクを返す
+        return todos.filter((todo) => !todo.delete_flg)
+    }
+  }
+  
+  const isFormDisabled= filter === 'completed' || filter === 'delete';
+
+  // 物理的に削除する関数
+  const handleEmpty = () => {
+    setTodos((todos) => todos.filter((todo) => !todo.delete_flg));
+  };
 
   return (
-    <div>
-      <form 
-        onSubmit={(e) => {
-          e.preventDefault();// フォームのデファルト動作を防ぐ
-          handleSubmit();// handleSubmit 関数を呼び出す
-        }}
+    <div className="todo-container">
+      <select 
+        defaultValue="all" 
+        onChange={(e) => handleFilterChange(e.target.value as Filter)}
       >
-        <input 
-          type="text" 
-          value= {text} // フォームの入力値をステートにバインド
-          onChange={(e) => setText(e.target.value)}// フォームの入力値が変わった時ににステートを更新 
-          placeholder="タスクを入力してください"
-        />
-        <button className="insert-btn" type="submit">追加</button>{/*このボタンはtype="submit"なので、クリックするとフォームのonSubmitイベントをトリガーします */}
-        <button className="btn btn-outline-primary ms-1" onClick={() => addDefault()}>テストに使うタスクを作成</button>
-      </form>
+        <option value="all">すべてのタスク</option>
+        <option value="completed">完了したタスク</option>
+        <option value="unchecked">現在のタスク</option>
+        <option value="delete">ゴミ箱</option>
+      </select>
+      {/* フィルターが 'delete' のときは 「ごみ箱を空にする」 ボタンを表示 */}
+      {filter === 'delete' ? (
+        <button onClick={handleEmpty}>
+          ごみ箱を空にする
+        </button>
+      ) : (
+        // フィルターが 'completed' でなければ Todo 入力フォームを表示
+        filter !== 'completed' && (     
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();// フォームのデファルト動作を防ぐ
+              handleSubmit();// handleSubmit 関数を呼び出す
+            }}
+          >
+            <input 
+              type="text" 
+              value= {text} // フォームの入力値をステートにバインド
+              disabled= {isFormDisabled}
+              onChange={(e) => setText(e.target.value)}// フォームの入力値が変わった時ににステートを更新 
+              placeholder="タスクを入力してください"
+            />
+            <button className="insert-btn" type="submit" disabled= {filter === 'completed' || filter === 'delete'}>追加</button>{/*このボタンはtype="submit"なので、クリックするとフォームのonSubmitイベントをトリガーします */}
+            <button className="btn btn-outline-primary ms-1" onClick={() => addDefault()} >テストに使うタスクを作成</button>
+          </form>
+        )
+      )}
       <ul>
-        {todos.map((todo) => (
+        {getFilteredTodos().map((todo) => (
           <li key={todo.id}>
             <input 
               type="checkbox" 
@@ -166,7 +222,7 @@ const Todos: React.FC = () => {
             <input 
               type="text"
               value={todo.title}
-              disabled={todo.completed_flg}
+              disabled={isFormDisabled}
               onChange={(e) => handleEdit(todo.id, e.target.value)}
              />
              <button className="btn btn-light" onClick={() => handleRemove(todo.id, !todo.delete_flg)}>
