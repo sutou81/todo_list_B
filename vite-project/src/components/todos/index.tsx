@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import localforage from 'localforage'
+import { useNavigate } from "react-router-dom";
 
 //Todos コンポーネントの定義
 /*React.FC：constによる型定義でコンポーネントを定義できる型
@@ -37,6 +38,7 @@ const Todos: React.FC = () => {
   const [text, setText] = useState(''); // 入力されたテキストを保持するステート②
   const [nextId, setNextId] = useState(1); // 次のタスクIDを保持するステート③
   const [filter, setFilter] = useState('all');
+  const navigate = useNavigate();
 
   //useEffect フックを使ってコンポーネントのマウント時にデータを取得
   useEffect(() => {
@@ -262,6 +264,20 @@ const Todos: React.FC = () => {
 
   return (
     <div className="todo-container">
+      <button 
+        className="back-button" 
+        onClick={() => navigate('/')}
+        title="Topページに戻る"
+      >
+        ← 戻る
+      </button>
+      <button 
+        className="reload-button" 
+        onClick={() => navigate('/todos')}
+        title="再読み込み"
+      >
+        ↻ 再読み込み
+      </button>
       <select 
         defaultValue="all" 
         onChange={(e) => handleFilterChange(e.target.value as Filter)}
